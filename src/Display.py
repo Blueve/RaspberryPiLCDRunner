@@ -119,7 +119,7 @@ class Display():
 			    0b00000,
 			    0b01110,
 			    0b11111,
-			    0b11111,
+			    0b10101,
 			    0b11111,
 			    0b01110]],
 			  [[0b00000, # Frame 1
@@ -135,7 +135,7 @@ class Display():
 			    0b00000,
 			    0b01110,
 			    0b11111,
-			    0b11111,
+			    0b10101,
 			    0b11111,
 			    0b01110]],
 			  [[0b00000, # Frame 2
@@ -149,7 +149,7 @@ class Display():
 			   [0b00100, 
 			    0b01110,
 			    0b11111,
-			    0b11111,
+			    0b10101,
 			    0b11111,
 			    0b01110,
 			    0b01110,
@@ -161,12 +161,12 @@ class Display():
 			    0b00000,
 			    0b00000,
 			    0b00000,
-			    0b00100],
-			   [0b01110, 
-			    0b11111,
-			    0b11111,
+			    0b01110],
+			   [0b11111, 
+			    0b10101,
 			    0b11111,
 			    0b01110,
+			    0b00100,
 			    0b00000,
 			    0b00000,
 			    0b00000]],
@@ -175,12 +175,12 @@ class Display():
 			    0b00000,
 			    0b00000,
 			    0b00000,
-			    0b00100,
 			    0b01110,
-			    0b01110],
+			    0b01110,
+			    0b10101],
 			   [0b11111, 
-			    0b11111,
 			    0b01110,
+			    0b00100,
 			    0b00000,
 			    0b00000,
 			    0b00000,
@@ -192,7 +192,7 @@ class Display():
 			    0b00000,
 			    0b01110,
 			    0b11111,
-			    0b11111,
+			    0b10101,
 			    0b11111],
 			   [0b01110, 
 			    0b00000,
@@ -204,12 +204,60 @@ class Display():
 			    0b00000]],
 			  [[0b00000, # Frame 6
 			    0b00000,
-			    0b01100,
 			    0b01110,
 			    0b11111,
+			    0b10101,
 			    0b11111,
-			    0b11111,
+			    0b01110,
 			    0b01110],
+			   [0b00000, 
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000]],
+			  [[0b00000, # Frame 7
+			    0b01110,
+			    0b10101,
+			    0b11111,
+			    0b01110,
+			    0b00000,
+			    0b00000,
+			    0b00000],
+			   [0b00000, 
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000]],
+			  [[0b01110, # Frame 8
+			    0b10101,
+			    0b11111,
+			    0b01110,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000],
+			   [0b00000, 
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000]],
+			  [[0b11111, # Frame 9
+			    0b10101,
+			    0b01110,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000,
+			    0b00000],
 			   [0b00000, 
 			    0b00000,
 			    0b00000,
@@ -233,7 +281,7 @@ class Display():
 		self.lcd.begin(16, 2)
 		self.lcd.backlight(Adafruit_CharLCDPlate.ON)
 		# Init Game
-		self.game = Game()
+		self.game = Game(self.lcd)
 
 	def mergeLayers(self):
 		# Merge layer to canvas
@@ -250,9 +298,11 @@ class Display():
 				if self.canvas.bitmap[row][col] == Layer.EMPTY:
 					self.lcdString[row][col] = ' '
 				else:
-					index = self.findInPixelSet(self.canvas.bitmap[row][col])
+					index = self.findInPixelSet(self.canvas.bitmap[row][col], count)
+					#print '[', str(row), '][', str(col), ']: ' + str(index)
+					#print self.canvas.bitmap[row][col]
 					if index == -1:
-						self.pixelSet[count] = self.canvas.bitmap[row][col]
+						self.pixelSet[count] = list(self.canvas.bitmap[row][col])
 						self.lcdString[row][col] = chr(count)
 						count += 1
 					else:
@@ -270,18 +320,23 @@ class Display():
 		for i, item in enumerate(self.pixelSet):
 			self.lcd.createChar(i, item)
 
-	def findInPixelSet(self, pixel):
-		for i in range(8):
+	def findInPixelSet(self, pixel, count):
+		for i in range(count):
 			if self.pixelSet[i] == pixel:
 				return i
 		return -1
 
 	def draw(self):
-		line_1 = ''.join(self.lcdString[0])
-		line_2 = ''.join(self.lcdString[1])
-		self.lcd.clear()
-		self.loadCharset()
-		self.lcd.message(line_1 + '\n' + line_2)
+		if self.game.state == Game.STATE_START:
+			self.lcd.message('Press SELECT to\n  START GAME    ')
+		elif self.game.state == Game.STATE_END:
+			self.lcd.message('  SCORE ' + str(self.game.score) + '\n   GAME  OVER   ')
+		else:
+			line_1 = ''.join(self.lcdString[0])
+			line_2 = ''.join(self.lcdString[1])
+			
+			self.lcd.message(line_1 + '\n' + line_2)
+			self.loadCharset()
 
 	def drawBarriers(self):
 		for barrier in self.game.barriers:
@@ -293,17 +348,19 @@ class Display():
 	def run(self):
 		while True:
 			self.game.tick()
-			print 'frame: ', self.game.frame
-			self.drawBarriers()
-			print 'barriers: ', self.game.barriers
-			self.drawRunner()
-			self.mergeLayers()
-			self.updateLcdString()
+			if self.game.state == Game.STATE_RUNNING:
+				self.drawBarriers()
+				self.drawRunner()
+				self.mergeLayers()
+				self.updateLcdString()
+
+			self.game.gameOver(self.barrier.bitmap[1][1], self.runner.bitmap[1][1])
 			self.draw()
+			
 			self.canvas  = Layer()
 			self.runner  = Layer()
 			self.barrier = Layer()
-			sleep(.08)
+			sleep(.03)
 
 if __name__ == '__main__':
 	display = Display()
